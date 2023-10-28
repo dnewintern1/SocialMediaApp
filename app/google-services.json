@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "376603105565",
+    "project_id": "socialmedaapp-6273e",
+    "storage_bucket": "socialmedaapp-6273e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:376603105565:android:95f2d994dfbcd72023a9f4",
+        "android_client_info": {
+          "package_name": "com.base.socialmedaapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBes4bKDmumaWsqFD2Mj0nliB55V5kQ_JU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

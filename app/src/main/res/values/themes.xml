@@ -1,0 +1,10 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.SocialMedaApp" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your light theme here. -->
+        <!--  -->
+        <item name="colorPrimary">#3c8de4</item>
+    </style>
+
+    <style name="Theme.SocialMedaApp" parent="Base.Theme.SocialMedaApp" />
+</resources>
