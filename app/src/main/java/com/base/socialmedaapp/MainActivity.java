@@ -1,31 +1,45 @@
 package com.base.socialmedaapp;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Toast;
-
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
 
     private ListView listView;
     private EditText postEditext;
@@ -33,7 +47,13 @@ public class MainActivity extends AppCompatActivity {
     private Button btnPost;
 
     private FirebaseAuth auth;
-    private ActivityResultLauncher<Intent> pickImageActivityResultLauncher;
+    private  Bitmap bitmap;
+    private  String imageIdentifier;
+    private ArrayList<String> userName;
+    private ArrayList<String> uids;
+    private ArrayAdapter adapter;
+
+
 
 
 
@@ -44,37 +64,31 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
 
-        pickImageActivityResultLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        Intent data = result.getData();
-                        // Handle the result here (e.g., get the selected image)
-                        if (data != null) {
-                            // Process the selected image data
-                        }
-                    }
-                }
-        );
+
 
         auth = FirebaseAuth.getInstance();
         listView = findViewById(R.id.listView);
+
+        listView.setOnItemClickListener(this);
         PostImageView = findViewById(R.id.PostImageView);
         postEditext = findViewById(R.id.postEditext);
+        userName = new ArrayList<>();
+        uids = new ArrayList<>();
         btnPost = findViewById(R.id.btnPost);
 
+        adapter= new ArrayAdapter(this,android.R.layout.simple_list_item_1, userName);
+
+        listView.setAdapter(adapter);
 
 
 
-        btnPost.setOnClickListener(new View.OnClickListener() {
+
+                btnPost.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(Intent.ACTION_PICK);
-                intent.setType("image/*");
 
-                // Launch the activity and handle the result
-                pickImageActivityResultLauncher.launch(intent);
 
+                uploadImageToServer();
 
 
             }
@@ -85,16 +99,135 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
 
 
+                selectImage();
 
             }
         });
     }
 
 
+    private void selectImage() {
+        if (Build.VERSION.SDK_INT < 23) {
+            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+            startActivityForResult(intent, 1000);
+        } if (Build.VERSION.SDK_INT >= 23)
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) !=  PackageManager.PERMISSION_GRANTED) {
+
+                requestPermissions(new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, 1000);
+
+            } else {
+
+                Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                startActivityForResult(intent, 1000);
+            }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == 1000 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+            selectImage();
+
+        }
+
+
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == 1000 && resultCode == RESULT_OK && data != null) {
+            Uri chosenImageData = data.getData();
+
+            try {
+                bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), chosenImageData);
+                PostImageView.setImageBitmap(bitmap);
+
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+            }
+
+        }
+
+    }
+
+    private void uploadImageToServer() {
+        if (bitmap != null) {
+            PostImageView.setDrawingCacheEnabled(true);
+            PostImageView.buildDrawingCache();
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+            byte[] data = baos.toByteArray();
+
+            if (data.length > 0) {
+                imageIdentifier = UUID.randomUUID() + ".png";
+
+                FirebaseStorage storage = FirebaseStorage.getInstance();
+                StorageReference storageRef = storage.getReference().child("myImages").child(imageIdentifier);
+
+                UploadTask uploadTask = storageRef.putBytes(data);
+                uploadTask.addOnFailureListener(exception -> {
+                    // Handle unsuccessful uploads
+                    Toast.makeText(MainActivity.this, exception.toString(), Toast.LENGTH_SHORT).show();
+                }).addOnSuccessListener(taskSnapshot -> {
+                    // Task completed successfully
+                    Toast.makeText(MainActivity.this, "Upload was successful", Toast.LENGTH_SHORT).show();
+
+                    postEditext.setVisibility(View.VISIBLE);
+
+
+                    FirebaseDatabase.getInstance().getReference().child("Twitter User").addChildEventListener(new ChildEventListener() {
+                        @Override
+                        public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+                            uids.add(snapshot.getKey());
+                            String username = (String)snapshot.child("profileName").getValue();
+                            userName.add(username);
+                            adapter.notifyDataSetChanged();
+                        }
+
+                        @Override
+                        public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+                        }
+
+                        @Override
+                        public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+
+                        }
+
+                        @Override
+                        public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
+
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError error) {
+
+                        }
+                    });
+                });
+            } else {
+                // Handle the case when data is empty
+                Toast.makeText(MainActivity.this, "Bitmap data is empty", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            // Handle the case when bitmap is null
+            Toast.makeText(MainActivity.this, "Bitmap is null", Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
+
 
     private void logout(){
         auth.signOut();
-
     }
 
 
@@ -112,5 +245,11 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(MainActivity.this, "Successfully Logout", Toast.LENGTH_SHORT).show();
         }
         return super.onOptionsItemSelected(item);
+    }
+
+
+    @Override
+    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
     }
 }
