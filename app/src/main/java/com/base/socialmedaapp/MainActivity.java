@@ -25,8 +25,11 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -37,6 +40,7 @@ import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
@@ -54,8 +58,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private ArrayAdapter adapter;
 
 
-
-
+    private ArrayList<DataSnapshot> posts;
+    private String imageDownloadLink;
 
 
     @Override
@@ -212,7 +216,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                         }
                     });
+                    taskSnapshot.getMetadata().getReference().getDownloadUrl().addOnCompleteListener(new OnCompleteListener<Uri>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Uri> task) {
+                            if(task.isSuccessful()){
+                                imageDownloadLink = task.getResult().toString();
+                            }
+                        }
+                    });
                 });
+
+
             } else {
                 // Handle the case when data is empty
                 Toast.makeText(MainActivity.this, "Bitmap data is empty", Toast.LENGTH_SHORT).show();
@@ -250,6 +264,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+        HashMap<String,String> dataMap = new HashMap<>();
+
+        dataMap.put("fromWhom", FirebaseAuth.getInstance().getCurrentUser().getDisplayName());
+        dataMap.put("imageIdentifier",imageIdentifier);
+        dataMap.put("imageLink", imageDownloadLink);
+        dataMap.put("des", postEditext.getText().toString());
+
+        FirebaseDatabase.getInstance().getReference().child("Twitter User").child(uids.get(i)).child("recieved_posts").push().setValue(dataMap);
 
     }
 }

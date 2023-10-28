@@ -1,9 +1,14 @@
 package com.base.socialmedaapp;
 
+import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
+
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.net.Uri;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import android.content.Intent;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -14,8 +19,12 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserProfileChangeRequest;
+import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+
+import java.util.ArrayList;
 
 public class SignUpActivity extends AppCompatActivity {
 
@@ -24,7 +33,10 @@ public class SignUpActivity extends AppCompatActivity {
     private Button signupButton;
     private TextView loginRedirectText;
 
-    private  UserDetails mUserDetails;
+
+
+
+
 
 
     @Override
@@ -82,6 +94,21 @@ public class SignUpActivity extends AppCompatActivity {
                                 });
 
                                 Toast.makeText(SignUpActivity.this, "sign up is successful", Toast.LENGTH_SHORT).show();
+
+                                UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
+                                        .setDisplayName(Username.getText().toString())
+                                        .build();
+
+                                FirebaseAuth.getInstance().getCurrentUser().updateProfile(profileUpdates)
+                                        .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                            @Override
+                                            public void onComplete(@NonNull Task<Void> task) {
+                                                if (task.isSuccessful()) {
+                                                    Toast.makeText(SignUpActivity.this, "profile name updated" , Toast.LENGTH_SHORT).show();
+                                                }
+                                            }
+                                        });
+
                                 startActivity(new Intent(SignUpActivity.this , LoginActivity.class));
                             }
                             else {
@@ -99,6 +126,8 @@ public class SignUpActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 startActivity(new Intent(SignUpActivity.this , LoginActivity.class));
+
+
             }
         });
 
