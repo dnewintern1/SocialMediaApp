@@ -46,8 +46,8 @@ public class ViewPostActivity extends AppCompatActivity implements AdapterView.O
         PostlistView = findViewById(R.id.PostlistView);
         userNames = new ArrayList<>();
 
-     //   sentPostImageView = findViewById(R.id.imageView);
-      //  sentPostTextview = findViewById(R.id.postTexxtView);
+       sentPostImageView = findViewById(R.id.imageView);
+       sentPostTextview = findViewById(R.id.postTexxtView);
         adapter = new ArrayAdapter(this , android.R.layout.simple_list_item_1,userNames);
         PostlistView.setAdapter(adapter);
 
@@ -75,6 +75,16 @@ public class ViewPostActivity extends AppCompatActivity implements AdapterView.O
 
             @Override
             public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+
+                int i = 0;
+                for (DataSnapshot msnapshot : mDataSnapshots) {
+                    if (msnapshot.getKey().equals(snapshot.getKey())) {
+                        mDataSnapshots.remove(i);
+                        userNames.remove(i);
+                        break; // Add break to exit the loop after removing the item
+                    }
+                    i++;
+                }
 
             }
 
@@ -117,16 +127,21 @@ public class ViewPostActivity extends AppCompatActivity implements AdapterView.O
                 .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
                         // Continue with delete operation
+                        FirebaseDatabase.getInstance().getReference()
+                                .child("my_images").child((String) mDataSnapshots
+                                    .get(i).child("imageIdentifier").getValue()).removeValue();
+
+
+                        FirebaseDatabase.getInstance().getReference()
+                                .child("Twitter User").child(mFirebaseAuth.getCurrentUser()
+                                        .getUid()).child("receiver_posts")
+                                .child(mDataSnapshots.get(i).getKey()).removeValue();
                     }
                 })
 
                 // A null listener allows the button to dismiss the dialog and take no further action.
-                .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
+                .setNegativeButton(android.R.string.no,null)
 
-                    }
-                })
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .show();
         return false;
