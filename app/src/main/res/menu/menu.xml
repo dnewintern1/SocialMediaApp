@@ -10,4 +10,10 @@
         app:showAsAction="always"
         android:title="LOGOUT"/>
 
+    <item
+        android:id="@+id/ViewPostsItem"
+        android:orderInCategory="101"
+        app:showAsAction="always"
+        android:title="View POSTs"/>
+
 </menu>

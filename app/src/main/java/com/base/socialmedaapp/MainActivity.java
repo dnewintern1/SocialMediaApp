@@ -258,6 +258,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             startActivity(new Intent(MainActivity.this, LoginActivity.class));
             Toast.makeText(MainActivity.this, "Successfully Logout", Toast.LENGTH_SHORT).show();
         }
+
+        if (item.getItemId() == R.id.ViewPostsItem) {
+
+            startActivity(new Intent(MainActivity.this, ViewPostActivity.class));
+
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -272,7 +278,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         dataMap.put("imageLink", imageDownloadLink);
         dataMap.put("des", postEditext.getText().toString());
 
-        FirebaseDatabase.getInstance().getReference().child("Twitter User").child(uids.get(i)).child("recieved_posts").push().setValue(dataMap);
+        FirebaseDatabase.getInstance().getReference().child("Twitter User").child(uids.get(i)).child("recieved_posts").push().setValue(dataMap).addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                Toast.makeText(MainActivity.this,"task was successful data is sent", Toast.LENGTH_SHORT).show();
+            }
+        });
 
     }
 }
