@@ -134,7 +134,7 @@ public class ViewPostActivity extends AppCompatActivity implements AdapterView.O
 
                         FirebaseDatabase.getInstance().getReference()
                                 .child("Twitter User").child(mFirebaseAuth.getCurrentUser()
-                                        .getUid()).child("receiver_posts")
+                                        .getUid()).child("recieved_posts")
                                 .child(mDataSnapshots.get(i).getKey()).removeValue();
                     }
                 })
